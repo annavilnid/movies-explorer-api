@@ -1,56 +1,76 @@
+require('dotenv').config();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const BadRequestError = require('../errors/BadRequestError');
+const DuplicateDataError = require('../errors/DuplicateDataError');
+const NotFoundError = require('../errors/NotFoundError');
 
-const {
-  ERROR_CODE, NOT_FOUND_CODE, SERVER_ERROR_CODE, CREATED_CODE,
-} = require('../errrors/errors');
+const { NODE_ENV, JWT_SECRET } = process.env;
 
-module.exports.createUser = (req, res) => {
-  console.log('create user');
-  const { name, email, password } = req.body;
-  User.create({ name, email, password })
-    .then((user) => res.status(CREATED_CODE).send({ user }))
-    // eslint-disable-next-line consistent-return
+module.exports.createUser = (req, res, next) => {
+  const {
+    name,
+    email,
+  } = req.body;
+  // хешируем пароль
+  bcrypt.hash(req.body.password, 10)
+    .then((hash) => User.create({
+      name,
+      email,
+      password: hash,
+    }))
+    .then((user) => res.status(201).send({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(ERROR_CODE).send({ message: err.message });
+        next(new BadRequestError('Данные не прошли валидацию на сервере'));
+        return;
+      } if (err.code === 11000) {
+        next(new DuplicateDataError('Указанный email уже зарегестрирован'));
+        return;
       }
-      res.status(SERVER_ERROR_CODE).send({ message: 'Ошибка сервера' });
+      next(err);
     });
 };
 
-module.exports.getUserInfo = (req, res) => {
-  User.findById(req.user._id)
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+  User.findUserByCredentials(email, password)
     .then((user) => {
-      if (!user) {
-        res.status(NOT_FOUND_CODE).send({ message: 'Запрашиваемый пользователь по указанному id не найден' });
-        return;
-      }
-      res.send(user);
+      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'SECRET_KEY', { expiresIn: '7d' });
+      res.send({ token });
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(ERROR_CODE).send({ message: err.message });
-        return;
-      }
-      res.status(SERVER_ERROR_CODE).send({ message: 'Ошибка сервера' });
-    });
+    .catch(next);
 };
 
-module.exports.updateUserInfo = (req, res) => {
+module.exports.getUserInfo = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => res.send({ user }))
+    .catch(next);
+};
+
+module.exports.updateUserInfo = (req, res, next) => {
   const { name, email } = req.body;
-  User.findOneAndUpdate({ id: req.user._id }, { name, email }, { new: true, runValidators: true })
+  User.findOneAndUpdate({ _id: req.user._id }, { name, email }, { new: true, runValidators: true })
     .then((user) => {
       if (!user) {
-        res.status(NOT_FOUND_CODE).send({ message: 'Запрашиваемый пользователь не найден' });
+        next(new NotFoundError('Запрашиваемый пользователь по указанному id не найден'));
         return;
       }
       res.send({ user });
     })
-    // eslint-disable-next-line consistent-return
     .catch((err) => {
-      if (err.name === 'CastError' || err.name === 'ValidationError') {
-        return res.status(ERROR_CODE).send({ message: err.message });
+      if (err.name === 'CastError') {
+        next(new BadRequestError('Переданы некорректные данные пользователя'));
+        return;
+      } if (err.code === 11000) {
+        next(new DuplicateDataError('Указанный email уже зарегестрирован'));
+        return;
       }
-      res.status(SERVER_ERROR_CODE).send({ message: 'Ошибка сервера' });
+      next(err);
     });
 };

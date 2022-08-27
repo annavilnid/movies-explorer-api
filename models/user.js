@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
-// const bcrypt = require('bcrypt');
-// const UnauthorizedError = require('../errors/UnauthorizedError');
+const bcrypt = require('bcrypt');
+const UnauthorizedError = require('../errors/UnauthorizedError');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -26,22 +26,22 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// userSchema.statics.findUserByCredentials = function find(email, password) {
-//   return this.findOne({ email }).select('+password')
-//     .then((user) => {
-//       if (!user) {
-//         throw new UnauthorizedError('Неправильные почта или пароль');
-//       }
+userSchema.statics.findUserByCredentials = function find(email, password) {
+  return this.findOne({ email }).select('+password')
+    .then((user) => {
+      if (!user) {
+        throw new UnauthorizedError('Неправильные почта или пароль');
+      }
 
-//       return bcrypt.compare(password, user.password)
-//         .then((matched) => {
-//           if (!matched) {
-//             throw new UnauthorizedError('Неправильные почта или пароль');
-//           }
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            throw new UnauthorizedError('Неправильные почта или пароль');
+          }
 
-//           return user; // теперь user доступен
-//         });
-//     });
-// };
+          return user; // теперь user доступен
+        });
+    });
+};
 
 module.exports = mongoose.model('user', userSchema);
