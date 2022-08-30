@@ -6,27 +6,22 @@ const helmet = require('helmet');
 const cors = require('cors');
 const routes = require('./routes/index');
 const { errorHandler } = require('./middelewares/errorHandler');
-const limiter = require('./middelewares/rateLimiter');
 const { requestLogger, errorLogger } = require('./middelewares/logger');
+const limiter = require('./middelewares/rateLimiter');
 
-mongoose.connect('mongodb://127.0.0.1/bitfilmsdb', {
+const { NODE_ENV, DB_PROD_ADDRESS } = process.env;
+const { PORT, DB_DEV_ADDRESS, ALLOWED_DOMAINS } = require('./constants/constants');
+
+mongoose.connect(NODE_ENV === 'production' ? DB_PROD_ADDRESS : DB_DEV_ADDRESS, {
   useNewUrlParser: true,
 });
-
-const { PORT = 3000 } = process.env;
 
 const app = express();
 
 app.use(helmet());
 
 app.use(cors({
-  origin: [
-    'https://api.vilnid.nomoredomains.sbs',
-    'http://api.vilnid.nomoredomains.sbs',
-    'https://vilnid.nomoredomains.sbs',
-    'http://vilnid.nomoredomains.sbs',
-    'http://localhost:3000',
-  ],
+  origin: ALLOWED_DOMAINS,
 }));
 
 app.use(bodyParser.json()); // для собирания JSON-формата

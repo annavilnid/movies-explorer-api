@@ -5,6 +5,7 @@ const User = require('../models/user');
 const BadRequestError = require('../errors/BadRequestError');
 const DuplicateDataError = require('../errors/DuplicateDataError');
 const NotFoundError = require('../errors/NotFoundError');
+const { ERROR_MESSAGE, ERROR_TYPE, STSTUS_CODE } = require('../constants/constants');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -20,17 +21,17 @@ module.exports.createUser = (req, res, next) => {
       email,
       password: hash,
     }))
-    .then((user) => res.status(201).send({
+    .then((user) => res.status(STSTUS_CODE.CREATE_CODE).send({
       _id: user._id,
       name: user.name,
       email: user.email,
     }))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError('Данные не прошли валидацию на сервере'));
+      if (err.name === ERROR_TYPE.VALIDATION) {
+        next(new BadRequestError(ERROR_MESSAGE.BAD_REQST_MSG));
         return;
-      } if (err.code === 11000) {
-        next(new DuplicateDataError('Указанный email уже зарегестрирован'));
+      } if (err.code === STSTUS_CODE.DUP_CODE) {
+        next(new DuplicateDataError(ERROR_MESSAGE.DUP_EMAIL_MSG));
         return;
       }
       next(err);
@@ -58,17 +59,17 @@ module.exports.updateUserInfo = (req, res, next) => {
   User.findOneAndUpdate({ _id: req.user._id }, { name, email }, { new: true, runValidators: true })
     .then((user) => {
       if (!user) {
-        next(new NotFoundError('Запрашиваемый пользователь по указанному id не найден'));
+        next(new NotFoundError(ERROR_MESSAGE.NOT_FOUND_USER_MSG));
         return;
       }
       res.send({ user });
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequestError('Переданы некорректные данные пользователя'));
+      if (err.name === ERROR_TYPE.CAST) {
+        next(new BadRequestError(ERROR_MESSAGE.BAD_REQST_MSG));
         return;
-      } if (err.code === 11000) {
-        next(new DuplicateDataError('Указанный email уже зарегестрирован'));
+      } if (err.code === STSTUS_CODE.DUP_CODE) {
+        next(new DuplicateDataError(ERROR_MESSAGE.DUP_EMAIL_MSG));
         return;
       }
       next(err);

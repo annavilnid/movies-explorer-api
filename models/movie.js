@@ -1,73 +1,69 @@
 const mongoose = require('mongoose');
-const { urlRegG } = require('../constants/constants');
+const validator = require('validator');
+
+const { MOVIE_SCHEMA } = require('../constants/constants');
 
 const userSchema = new mongoose.Schema({
   country: {
     type: String,
-    required: [true, 'Введите название страны'],
+    required: [true, MOVIE_SCHEMA.COUNTRY],
   },
   director: {
     type: String,
-    required: [true, 'Введите имя режиссера'],
+    required: [true, MOVIE_SCHEMA.DIRECTOR],
   },
   duration: {
     type: Number,
-    required: [true, 'Введите длительность фильма'],
+    required: [true, MOVIE_SCHEMA.DURATION],
   },
   year: {
     type: String,
-    required: [true, 'Введите год выпуска фильма'],
+    required: [true, MOVIE_SCHEMA.YEAR],
   },
   description: {
     type: String,
-    required: [true, 'Введите описание фильма'],
+    required: [true, MOVIE_SCHEMA.DESCRIPTION],
   },
   image: {
     type: String,
-    required: [true, 'Введите ссылку на постер к фильму'],
+    required: [true, MOVIE_SCHEMA.IMAGE],
     validate: {
-      validator(v) {
-        return urlRegG.test(v);
-      },
-      message: 'Введен некорректный формат ссылки',
+      validator: (v) => validator.isURL(v),
+      message: MOVIE_SCHEMA.VALIDATE,
     },
   },
-  trailer: {
+  trailerLink: {
     type: String,
-    required: [true, 'Введите ссылку на трейлер к фильму'],
+    required: [true, MOVIE_SCHEMA.TRAILERLINK],
     validate: {
-      validator(v) {
-        return urlRegG.test(v);
-      },
-      message: 'Введен некорректный формат ссылки',
+      validator: (v) => validator.isURL(v),
+      message: MOVIE_SCHEMA.VALIDATE,
     },
   },
   thumbnail: {
     type: String,
-    required: [true, 'Введите ссылку на миниатюрное изображение постера к фильму'],
+    required: [true, MOVIE_SCHEMA.THUMBNAIL],
     validate: {
-      validator(v) {
-        return urlRegG.test(v);
-      },
-      message: 'Введен некорректный формат ссылки',
+      validator: (v) => validator.isURL(v),
+      message: MOVIE_SCHEMA.VALIDATE,
     },
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user',
-    required: true,
+    required: [true, MOVIE_SCHEMA.OWNER],
   },
   movieId: {
     type: Number,
-    required: true,
+    required: [true, MOVIE_SCHEMA.MOVIEID],
   },
   nameRU: {
     type: String,
-    required: [true, 'Введите название фильма на русском языке'],
+    required: [true, MOVIE_SCHEMA.NAMERU],
   },
   nameEN: {
     type: String,
-    required: [true, 'Введите название фильма на английском языке'],
+    required: [true, MOVIE_SCHEMA.NAMEEN],
   },
 });
 
